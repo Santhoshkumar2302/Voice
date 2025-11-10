@@ -9,7 +9,7 @@ from fastapi.templating import Jinja2Templates
 import pandas as pd
 from langchain_community.document_loaders import DataFrameLoader
 from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
@@ -88,7 +88,7 @@ async def chat(message: str = Form(...)):
     try:
         response = await asyncio.to_thread(qa_chain.run, message)
 
-        # Generate TTS
+        # Generate TTG
         audio_filename = f"response_{uuid.uuid4().hex}.mp3"
         audio_path = os.path.join("static", audio_filename)
         tts = gTTS(text=response, lang="en", slow=False)
