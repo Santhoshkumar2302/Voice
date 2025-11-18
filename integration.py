@@ -6,39 +6,49 @@ from voiceBot import app
 
 client = TestClient(app)
 
-# Path to your CSV file
-CSV_PATH = "customer_faq.csv"
+CSV_PATH = "flight_questions_variations.csv"
 
-# Read questions from CSV
+questions = []
+
+# Load ALL variations from the CSV
 if os.path.exists(CSV_PATH):
     df = pd.read_csv(CSV_PATH, encoding="utf-8")
-    if "Question" in df.columns:
-        questions = df["Question"].dropna().tolist()
-    else:
-        questions = ["How can I reset my password?"]  # fallback
-else:
-    questions = ["How can I reset my password?"]  # fallback
 
+    # loop through all columns in the CSV
+    for col in df.columns:
+        questions.extend(df[col].dropna().astype(str).tolist())
+
+    # remove duplicates
+    questions = list(set(questions))
+
+else:
+    questions = ["How can I reset my password?"]
+    
 
 @pytest.mark.parametrize("question", questions)
-def test_chat_endpoint_with_csv_questions(question):
-    """Integration test for /chat using all questions from customer_faq.csv"""
+def test_chat_endpoint(question):
+    """
+    Integration test that sends each question variation from 
+    flight_questions_variations.csv to the /chat endpoint.
+    """
     response = client.post("/chat", data={"message": question})
 
-    # ✅ 1. Ensure request success
+    # 1. Request OK
     assert response.status_code == 200, f"❌ Failed for: {question}"
 
     data = response.json()
-    assert "reply" in data and "audio" in data, f"❌ Missing keys for: {question}"
 
-    # ✅ 2. Check that reply is non-empty
+    # 2. Validate schema
+    assert "reply" in data, f"❌ Missing reply for: {question}"
+    assert "audio" in data, f"❌ Missing audio for: {question}"
+
+    # 3. Reply must not be empty
     assert isinstance(data["reply"], str)
-    assert len(data["reply"].strip()) > 0, f"Empty reply for: {question}"
+    assert data["reply"].strip(), f"❌ Empty reply for: {question}"
 
-    # ✅ 3. Check that audio file exists
+    # 4. Audio file must exist
     audio_path = data["audio"].lstrip("/")
-    assert os.path.exists(audio_path), f"Audio file missing for: {question}"
+    assert os.path.exists(audio_path), f"❌ Audio missing for: {question}"
 
-    # ✅ 4. Cleanup after test (optional)
-    if os.path.exists(audio_path):
-        os.remove(audio_path)
+    # 5. Cleanup
+    os.remove(audio_path)

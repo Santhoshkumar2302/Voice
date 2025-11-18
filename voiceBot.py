@@ -14,6 +14,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from gtts import gTTS
+import time
 
 # FastAPI setup
 app = FastAPI()
@@ -86,7 +87,12 @@ def home(request: Request):
 @app.post("/chat")
 async def chat(message: str = Form(...)):
     try:
+        total_start = time.time()
+
+        llm_start = time.time()
         response = await asyncio.to_thread(qa_chain.run, message)
+        llm_end = time.time()
+        llm_time = round(llm_end - llm_start,3)
 
         # Generate TTG
         audio_filename = f"response_{uuid.uuid4().hex}.mp3"
@@ -102,7 +108,10 @@ async def chat(message: str = Form(...)):
         for old_file in audio_files[:-20]:
             os.remove(os.path.join("static", old_file))
 
-        return JSONResponse({"reply": response, "audio": f"/static/{audio_filename}"})
+        total_end = time.time()
+        total_time = round(total_end - total_start,3)
+
+        return JSONResponse({"reply": response, "audio": f"/static/{audio_filename}", "total_time":total_time,"llm_time":llm_time})
 
     except Exception as e:
         return JSONResponse({"error": str(e)})
