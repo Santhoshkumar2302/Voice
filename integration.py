@@ -14,22 +14,22 @@ questions = []
 if os.path.exists(CSV_PATH):
     df = pd.read_csv(CSV_PATH, encoding="utf-8")
 
-    # loop through all columns in the CSV
+    # Loop through all columns
     for col in df.columns:
         questions.extend(df[col].dropna().astype(str).tolist())
 
-    # remove duplicates
+    # Remove duplicates
     questions = list(set(questions))
 
 else:
     questions = ["How can I reset my password?"]
-    
+
 
 @pytest.mark.parametrize("question", questions)
 def test_chat_endpoint(question):
     """
-    Integration test that sends each question variation from 
-    flight_questions_variations.csv to the /chat endpoint.
+    Integration test that sends each question variation
+    to the /chat endpoint.
     """
     response = client.post("/chat", data={"message": question})
 
@@ -50,5 +50,6 @@ def test_chat_endpoint(question):
     audio_path = data["audio"].lstrip("/")
     assert os.path.exists(audio_path), f"❌ Audio missing for: {question}"
 
-    # 5. Cleanup
-    os.remove(audio_path)
+    # 5. Cleanup safely
+    if os.path.exists(audio_path):
+        os.remove(audio_path)
