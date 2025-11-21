@@ -1,4 +1,4 @@
-import os, uuid, base64, asyncio, pandas as pd
+import os, uuid, base64, asyncio, pandas as pd, time
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,15 +36,24 @@ else:
 
 # ------------------- Gemini LLM for RAG
 llm=ChatGoogleGenerativeAI(model="models/gemini-2.5-flash")
-prompt_template=PromptTemplate(input_variables=["context","question"], template="""
+prompt_template = PromptTemplate(
+    input_variables=["context","question"], 
+    template="""
 You are SupportAssistant, a professional polite customer support voice bot.
+
+Answer the USER QUESTION **only using the CONTEXT below**. 
+Do not make up information. If the answer is not in the CONTEXT, say: "I don't know."
 
 CONTEXT:
 {context}
 
 USER QUESTION:
 {question}
-""")
+
+Answer:
+"""
+)
+
 qa_chain=RetrievalQA.from_chain_type(
     llm=llm,
     retriever=vectorstore.as_retriever(search_kwargs={"k":4}),
@@ -69,9 +78,19 @@ def home(request:Request):
 @app.post("/chat")
 async def chat(message:str = Form(...)):
     try:
+        start_total = time.perf_counter()
+
+        start_llm = time.perf_counter()
         rag_answer = await asyncio.to_thread(qa_chain.run, message)
+        end_llm = time.perf_counter()
+        llm_time = round((end_llm - start_llm)*1000,2)
+
         audio_b64 = await text_to_speech_base64(rag_answer)
-        return {"reply": rag_answer, "audio_base64": audio_b64}
+
+        end_total = time.perf_counter()
+        total_time = round((end_total - start_total) * 1000,2)
+
+        return {"reply": rag_answer, "audio_base64": audio_b64,"llm_time":llm_time,"total_time":total_time}
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
