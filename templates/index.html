@@ -5,137 +5,357 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Voice RAG Chatbot</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
+
   <style>
-    body { margin:0; font-family: sans-serif; background:#111; color:#fff; display:flex; align-items:center; justify-content:center; height:100vh; }
-    .chat-container { width:420px; height:82vh; background:#1a1a1a; border-radius:20px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 0 20px rgba(0,0,0,0.4); }
-    .chat-header { padding:14px; font-size:20px; text-align:center; background:#141414; border-bottom:1px solid #333; }
-    .chat-messages { flex:1; padding:18px; overflow-y:auto; display:flex; flex-direction:column; gap:12px; scroll-behavior:smooth; }
-    .message { padding:12px 16px; border-radius:14px; max-width:78%; line-height:1.4; animation:fadeIn .25s ease-out; }
-    @keyframes fadeIn { from {opacity:0; transform:translateY(4px);} to {opacity:1; transform:translateY(0);} }
+    /* ---------- GLOBAL ---------- */
+    body {
+      margin:0;
+      font-family: sans-serif;
+      background:#111;
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      height:95vh;
+      padding:10px;
+    }
+
+    /* ---------- CHAT CONTAINER (RESPONSIVE) ---------- */
+    .chat-container {
+      width: 100%;
+      max-width: 420px;
+      height: 85vh;
+      background:#1a1a1a;
+      border-radius:20px;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      box-shadow:0 0 20px rgba(0,0,0,0.4);
+    }
+
+    @media (max-width: 480px) {
+      .chat-container {
+        height: 92vh;
+        border-radius: 14px;
+      }
+      .chat-header {
+        font-size:18px;
+        padding:12px;
+      }
+    }
+
+    /* ---------- HEADER ---------- */
+    .chat-header {
+      padding:14px;
+      font-size:20px;
+      text-align:center;
+      background:#141414;
+      border-bottom:1px solid #333;
+    }
+
+    /* ---------- MESSAGES ---------- */
+    .chat-messages {
+      flex:1;
+      padding:18px;
+      overflow-y:auto;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      scroll-behavior:smooth;
+    }
+
+    /* -------- CUSTOM SCROLLBAR -------- */
+    /* Chrome, Safari, Opera */
+    .chat-messages::-webkit-scrollbar {
+      width: 8px;
+    }
+    .chat-messages::-webkit-scrollbar-track {
+      background: #1a1a1a;
+    }
+    .chat-messages::-webkit-scrollbar-thumb {
+      background-color: #14B8A6;
+      border-radius: 4px;
+      border: 2px solid #1a1a1a;
+    }
+    .chat-messages::-webkit-scrollbar-thumb:hover {
+      background-color: #0f766e;
+    }
+
+    /* Firefox */
+    .chat-messages {
+      scrollbar-width: thin;
+      scrollbar-color: #14B8A6 #1a1a1a;
+    }
+
+    .message {
+      padding:12px 16px;
+      border-radius:14px;
+      max-width:78%;
+      line-height:1.4;
+      animation:fadeIn .25s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {opacity:0; transform:translateY(4px);}
+      to {opacity:1; transform:translateY(0);}
+    }
+
     .user { align-self:flex-end; background:#14B8A6; color:#042; }
     .bot { align-self:flex-start; background:#333; color:#fff; }
-    .typing-dots { width:45px; height:20px; display:flex; gap:6px; align-items:center; }
-    .typing-dots div { width:8px; height:8px; border-radius:50%; background:#aaa; animation:blink 1.2s infinite; }
-    .typing-dots div:nth-child(2){animation-delay:.15s} .typing-dots div:nth-child(3){animation-delay:.3s}
-    @keyframes blink { 0%{opacity:.2} 50%{opacity:1} 100%{opacity:.2} }
-    .chat-input { padding:14px; background:#141414; border-top:1px solid #333; text-align:center; }
-    .mic-btn { width:60px; height:60px; border-radius:50%; border:none; background:#14B8A6; color:#fff; font-size:22px; cursor:pointer; }
-    .mic-btn:active{ transform:scale(.95) }
+
+    /* ---------- TYPING DOTS ---------- */
+    .typing-dots {
+      width:45px; height:20px;
+      display:flex; gap:6px;
+      align-items:center;
+    }
+    .typing-dots div {
+      width:8px; height:8px;
+      border-radius:50%;
+      background:#aaa;
+      animation:blink 1.2s infinite;
+    }
+    .typing-dots div:nth-child(2){animation-delay:.15s}
+    .typing-dots div:nth-child(3){animation-delay:.3s}
+
+    @keyframes blink {
+      0%{opacity:.2}
+      50%{opacity:1}
+      100%{opacity:.2}
+    }
+
+    /* ---------- INPUT SECTION ---------- */
+    .chat-input {
+      padding:14px;
+      background:#141414;
+      border-top:1px solid #333;
+      text-align:center;
+    }
+
+    /* ---------- MIC BUTTON ---------- */
+    .mic-btn {
+      width:60px; height:60px;
+      border-radius:50%;
+      border:none;
+      background:#14B8A6;
+      color:#fff;
+      font-size:22px;
+      cursor:pointer;
+      outline:none;
+      position:relative;
+    }
+
+    /* ---------- WAVEFORM ANIMATION ---------- */
+    .recording-wave {
+      position: absolute;
+      top: -8px;
+      left: -8px;
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: rgba(20, 184, 166, 0.28);
+      animation: pulseWave 1.3s ease-out infinite;
+      pointer-events:none;
+    }
+    .timing-text {
+      font-size: 11px;
+      color: #aaa;
+      opacity: 0.7;
+      margin-top: -6px;
+      margin-left: 4px;
+      margin-bottom: 4px;
+    }
+
+    @keyframes pulseWave {
+      0%   { transform: scale(0.85); opacity:0.9; }
+      70%  { transform: scale(1.25); opacity:0.25; }
+      100% { transform: scale(1.35); opacity:0; }
+    }
+
+    /* ---------- EXTRA RESPONSIVE ---------- */
+    @media (max-width: 360px) {
+      .mic-btn { width:56px; height:56px; font-size:20px; }
+      .recording-wave { width:70px; height:70px; top:-7px; left:-7px; }
+    }
   </style>
 </head>
 <body>
+
   <div class="chat-container">
     <div class="chat-header">Talk with Alex (AI)</div>
     <div class="chat-messages" id="chatMessages"></div>
+
     <div class="chat-input">
-      <button id="micBtn" class="mic-btn"><i class="fa-solid fa-microphone"></i></button>
+      <button id="micBtn" class="mic-btn">
+        <i class="fa-solid fa-microphone"></i>
+      </button>
     </div>
   </div>
 
-  <script>
-    const chatMessages = document.getElementById("chatMessages");
-    const micBtn = document.getElementById("micBtn");
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+<script>
+const chatMessages = document.getElementById("chatMessages");
+const micBtn = document.getElementById("micBtn");
 
-    if (!SpeechRecognition) { alert("SpeechRecognition not supported in this browser."); }
-    const recognition = new SpeechRecognition();
-    recognition.lang = "en-IN";
-    recognition.interimResults = false;
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SpeechRecognition) alert("SpeechRecognition not supported.");
 
-    let isRecording = false;
-    let typingBubble = null;
+const recognition = new SpeechRecognition();
+recognition.lang = "en-IN";
+recognition.interimResults = false;
 
-    function appendUser(text){
-      const el = document.createElement("div");
-      el.className = "message user";
-      el.textContent = text;
-      chatMessages.appendChild(el);
+let isRecording = false;
+let typingBubble = null;
+let waveElement = null;
+
+function appendUser(text){
+  const el = document.createElement("div");
+  el.className = "message user";
+  el.textContent = text;
+  chatMessages.appendChild(el);
+  autoScroll();
+}
+
+function showTypingBubble(){
+  typingBubble = document.createElement("div");
+  typingBubble.className = "message bot";
+  const dots = document.createElement("div");
+  dots.className = "typing-dots";
+  dots.innerHTML = "<div></div><div></div><div></div>";
+  typingBubble.appendChild(dots);
+  chatMessages.appendChild(typingBubble);
+  autoScroll();
+}
+
+function removeTypingBubble(){
+  if(typingBubble){ typingBubble.remove(); typingBubble=null; }
+}
+
+function autoScroll(){
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function base64ToBlob(base64,mime="audio/mpeg"){
+  const byteChars = atob(base64);
+  const byteNumbers = new Array(byteChars.length);
+  for(let i=0;i<byteChars.length;i++){
+    byteNumbers[i]=byteChars.charCodeAt(i);
+  }
+  return new Blob([new Uint8Array(byteNumbers)],{type:mime});
+}
+
+function typeWriter(el,text,speed=20){
+  return new Promise(resolve=>{
+    let i=0;
+    el.textContent="";
+    const timer=setInterval(()=>{
+      el.textContent=text.substring(0,i);
+      i++;
       autoScroll();
-    }
+      if(i>text.length){ clearInterval(timer); resolve(); }
+    },speed);
+  });
+}
 
-    function showTypingBubble(){
-      typingBubble = document.createElement("div");
-      typingBubble.className = "message bot";
-      const dots = document.createElement("div");
-      dots.className = "typing-dots";
-      dots.innerHTML = "<div></div><div></div><div></div>";
-      typingBubble.appendChild(dots);
-      chatMessages.appendChild(typingBubble);
-      autoScroll();
-    }
+function startWaveAnimation() {
+  waveElement = document.createElement("div");
+  waveElement.className = "recording-wave";
+  micBtn.appendChild(waveElement);
+}
 
-    function removeTypingBubble(){ if(typingBubble){ typingBubble.remove(); typingBubble=null; } }
+function stopWaveAnimation() {
+  if(waveElement){
+    waveElement.remove();
+    waveElement = null;
+  }
+}
 
-    function autoScroll(){
-      const atBottom = chatMessages.scrollTop + chatMessages.clientHeight >= chatMessages.scrollHeight - 40;
-      if(atBottom) chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
+async function handleReply(replyText, audioBase64, llmTime, totalTime) {
 
-    function base64ToBlob(base64,mime="audio/mpeg"){
-      const byteChars = atob(base64);
-      const byteNumbers = new Array(byteChars.length);
-      for(let i=0;i<byteChars.length;i++){ byteNumbers[i]=byteChars.charCodeAt(i); }
-      return new Blob([new Uint8Array(byteNumbers)],{type:mime});
-    }
+  // ---- Main bot message ----
+  let el = typingBubble || document.createElement("div");
+  if (!typingBubble) chatMessages.appendChild(el);
 
-    function typeWriter(el,text,speed=20){
-      return new Promise(resolve=>{
-        let i=0;
-        el.textContent="";
-        const timer = setInterval(()=>{
-          el.textContent=text.substring(0,i);
-          i++; autoScroll();
-          if(i>text.length){ clearInterval(timer); resolve(); }
-        },speed);
-      });
-    }
+  el.className = "message bot";
+  el.innerHTML = "";
 
-    async function handleReply(replyText,audioBase64){
-      let el = typingBubble || document.createElement("div");
-      if(!typingBubble) chatMessages.appendChild(el);
-      el.className="message bot"; el.innerHTML="";
+  if (audioBase64) {
+    const blob = base64ToBlob(audioBase64);
+    const audio = new Audio(URL.createObjectURL(blob));
+    audio.play().catch(() => {});
+  }
 
-      let audio=null;
-      if(audioBase64){
-        const blob = base64ToBlob(audioBase64);
-        audio=new Audio(URL.createObjectURL(blob));
-        audio.play().catch(()=>{});
-      }
+  await typeWriter(el, replyText, 20);
+  typingBubble = null;
 
-      await typeWriter(el,replyText,20);
-      typingBubble=null;
-      autoScroll();
-    }
+  // ---- Tiny timing text below the message ----
+  const timing = document.createElement("div");
+  timing.className = "timing-text";
+  timing.innerHTML = `
+    ⏱ LLM: ${(llmTime / 1000).toFixed(2)}s &nbsp;|&nbsp; 
+    Total: ${(totalTime / 1000).toFixed(2)}s
+  `;
+  chatMessages.appendChild(timing);
+  autoScroll();
+}
 
-    micBtn.addEventListener("click",()=>{
-      if(!isRecording){ recognition.start(); isRecording=true; micBtn.style.background="#f87171"; micBtn.innerHTML='<i class="fa-solid fa-microphone-slash"></i>'; }
-      else recognition.stop();
-    });
+micBtn.addEventListener("click",()=>{
+  if(!isRecording){
+    recognition.start();
+    isRecording=true;
+    micBtn.style.background="#f87171";
+    micBtn.innerHTML='<i class="fa-solid fa-microphone-slash"></i>';
+    startWaveAnimation();
+  }
+  else recognition.stop();
+});
 
-    recognition.onresult=async(event)=>{
-      const text=event.results[0][0].transcript;
-      appendUser(text);
+recognition.onresult=async(event)=>{
+  const text=event.results[0][0].transcript;
+  appendUser(text);
 
-      isRecording=false; micBtn.style.background="#14B8A6"; micBtn.innerHTML='<i class="fa-solid fa-microphone"></i>';
+  isRecording=false;
+  micBtn.style.background="#14B8A6";
+  micBtn.innerHTML='<i class="fa-solid fa-microphone"></i>';
+  stopWaveAnimation();
 
-      showTypingBubble();
-      try{
-        const fd=new FormData();
-        fd.append("message",text);
-        const res=await fetch("/chat",{method:"POST",body:fd});
-        const data=await res.json();
-        const reply=data.reply||""; const audio_b64=data.audio_base64||null;
-        await handleReply(reply,audio_b64);
-      }catch(err){
-        removeTypingBubble();
-        const errEl=document.createElement("div"); errEl.className="message bot"; errEl.textContent="❌ "+(err.message||"Unknown error");
-        chatMessages.appendChild(errEl); autoScroll();
-      }
-    };
+  showTypingBubble();
 
-    recognition.onerror=(e)=>{ const el=document.createElement("div"); el.className="message bot"; el.textContent="⚠️ Mic error: "+(e.error||"unknown"); chatMessages.appendChild(el); autoScroll(); };
-    recognition.onend=()=>{ isRecording=false; micBtn.style.background="#14B8A6"; micBtn.innerHTML='<i class="fa-solid fa-microphone"></i>'; };
+  try{
+    const fd=new FormData();
+    fd.append("message",text);
+    const res=await fetch("/chat",{method:"POST",body:fd});
+    const data=await res.json();
+    await handleReply(
+      data.reply || "",
+      data.audio_base64 || null,
+      data.llm_time,
+      data.total_time
+    )
+  }catch(err){
+    removeTypingBubble();
+    const errEl=document.createElement("div");
+    errEl.className="message bot";
+    errEl.textContent="❌ "+(err.message || "Unknown error");
+    chatMessages.appendChild(errEl);
+    autoScroll();
+  }
+};
 
-  </script>
+recognition.onerror=(e)=>{
+  const el=document.createElement("div");
+  el.className="message bot";
+  el.textContent="⚠️ Mic error: "+(e.error || "unknown");
+  chatMessages.appendChild(el);
+  autoScroll();
+};
+
+recognition.onend=()=>{
+  isRecording=false;
+  micBtn.style.background="#14B8A6";
+  micBtn.innerHTML='<i class="fa-solid fa-microphone"></i>';
+  stopWaveAnimation();
+};
+</script>
+
 </body>
 </html>
