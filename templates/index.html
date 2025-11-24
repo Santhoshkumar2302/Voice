@@ -206,6 +206,8 @@ recognition.interimResults = false;
 let isRecording = false;
 let typingBubble = null;
 let waveElement = null;
+let welcomePlayed = false;
+
 
 function appendUser(text){
   const el = document.createElement("div");
@@ -267,6 +269,38 @@ function stopWaveAnimation() {
     waveElement.remove();
     waveElement = null;
   }
+}
+
+// --- FUNCTION: Bot Warm Voice + Text Welcome ---
+async function botVoiceWelcome() {
+  const welcomeText = "Hello! I'm here to assist you. How can I help you today?";
+
+  // Show text in chat
+  const el = document.createElement("div");
+  el.className = "message bot";
+  chatMessages.appendChild(el);
+  await typeWriter(el, welcomeText, 20);
+
+  // ---- Generate speech using browser speechSynthesis ----
+  try {
+    const utter = new SpeechSynthesisUtterance(welcomeText);
+    utter.lang = "en-IN";
+    utter.rate = 1.0;
+    utter.pitch = 1.0;
+
+    speechSynthesis.cancel(); // clear any queued speech
+    speechSynthesis.speak(utter);
+  } catch (e) {
+    console.error("Speech error:", e);
+  }
+
+  // Add small tag below
+  const timing = document.createElement("div");
+  timing.className = "timing-text";
+  // timing.textContent = "👋 Welcome message";
+  chatMessages.appendChild(timing);
+
+  autoScroll();
 }
 
 async function handleReply(replyText, audioBase64, llmTime, totalTime) {
@@ -355,6 +389,11 @@ recognition.onend=()=>{
   micBtn.innerHTML='<i class="fa-solid fa-microphone"></i>';
   stopWaveAnimation();
 };
+
+window.onload = () => {
+  botVoiceWelcome();
+};
+
 </script>
 
 </body>
